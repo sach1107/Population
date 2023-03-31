@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Population</string>
+    <string name="usa_population">USA population</string>
+    <string name="state_details">State details</string>
+    <string name="year">Year: %s</string>
+    <string name="population">Population: %s</string>
+    <string name="state_name">Name: %s</string>
+</resources>
