@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.test.runTest
 import org.junit.After
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import retrofit2.HttpException
@@ -22,22 +21,11 @@ import java.io.IOException
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class GetNationPopulationDataUseCaseTest {
 
-    private lateinit var populationRepository: PopulationRepository
-    private lateinit var populationDataUseCase: GetNationPopulationDataUseCase
+    private val populationRepository = mockk<PopulationRepository>()
+    private val populationDataUseCase = GetNationPopulationDataUseCase(populationRepository)
 
     @get:Rule
     val coroutineTestRule = CoroutineTestRule()
-
-    @Before
-    fun setUp() {
-        populationRepository = mockkClass(PopulationRepository::class)
-        populationDataUseCase = GetNationPopulationDataUseCase(populationRepository)
-    }
-
-    @After
-    fun tearDown() {
-        unmockkAll()
-    }
 
     @Test
     fun execute_fetchPopulationData_emitSuccess() = runTest(coroutineTestRule.testDispatcher) {
@@ -71,30 +59,74 @@ internal class GetNationPopulationDataUseCaseTest {
     }
 
     @Test
-    fun execute_fetchPopulationDataIOException_emitFailure() = runTest(coroutineTestRule.testDispatcher) {
-        val exception = mockkClass(IOException::class)
-        coEvery { populationRepository.getNationPopulationData() } throws exception
+    fun execute_fetchPopulationDataWithEmptyList_emitSuccess() =
+        runTest(coroutineTestRule.testDispatcher) {
+            val nationPopulationDto =
+                NationPopulationDto(nationData = emptyList(), source = emptyList())
+            coEvery { populationRepository.getNationPopulationData() } returns nationPopulationDto
 
-        val result = populationDataUseCase.execute()
-        val job = async { result.take(2).last() }
+            val result = populationDataUseCase.execute()
+            val job = async { result.take(2).last() }
 
-        assertThat(job.await()).isInstanceOf(Result.Failure::class.java)
-        coVerify {
-            populationRepository.getNationPopulationData()
+            assertThat(job.await()).isInstanceOf(Result.Success::class.java)
+            coVerify {
+                populationRepository.getNationPopulationData()
+            }
         }
-    }
 
     @Test
-    fun execute_fetchPopulationDataConnectionException_emitFailure() = runTest(coroutineTestRule.testDispatcher) {
-        val exception = mockkClass(HttpException::class, relaxed = true)
-        coEvery { populationRepository.getNationPopulationData() } throws exception
+    fun execute_fetchPopulationDataIOException_emitFailure() =
+        runTest(coroutineTestRule.testDispatcher) {
+            val exception = mockk<IOException>()
+            coEvery { populationRepository.getNationPopulationData() } throws exception
 
-        val result = populationDataUseCase.execute()
-        val job = async { result.take(2).last() }
+            val result = populationDataUseCase.execute()
+            val job = async { result.take(2).last() }
 
-        assertThat(job.await()).isInstanceOf(Result.Failure::class.java)
-        coVerify {
-            populationRepository.getNationPopulationData()
+            assertThat(job.await()).isInstanceOf(Result.Failure::class.java)
+            coVerify {
+                populationRepository.getNationPopulationData()
+            }
         }
+
+    @Test
+    fun execute_fetchPopulationHttpException_emitFailure() =
+        runTest(coroutineTestRule.testDispatcher) {
+            val exception = mockk<HttpException>()
+            every { exception.localizedMessage } returns FAILURE_MESSAGE
+            coEvery { populationRepository.getNationPopulationData() } throws exception
+
+            val result = populationDataUseCase.execute()
+            val job = async { result.take(2).last() }
+
+            assertThat(job.await()).isInstanceOf(Result.Failure::class.java)
+            coVerify {
+                populationRepository.getNationPopulationData()
+            }
+        }
+
+    @Test
+    fun execute_fetchPopulationHttpExceptionWithNoLocalizedMsg_emitFailure() =
+        runTest(coroutineTestRule.testDispatcher) {
+            val exception = mockk<HttpException>()
+            every { exception.localizedMessage } returns null
+            coEvery { populationRepository.getNationPopulationData() } throws exception
+
+            val result = populationDataUseCase.execute()
+            val job = async { result.take(2).last() }
+
+            assertThat(job.await()).isInstanceOf(Result.Failure::class.java)
+            coVerify {
+                populationRepository.getNationPopulationData()
+            }
+        }
+
+    @After
+    fun tearDown() {
+        unmockkAll()
+    }
+
+    private companion object {
+        private const val FAILURE_MESSAGE = "http exception"
     }
 }

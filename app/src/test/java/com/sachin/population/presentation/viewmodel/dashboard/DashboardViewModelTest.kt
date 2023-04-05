@@ -7,7 +7,7 @@ import com.sachin.population.domain.usecases.nation.GetNationPopulationDataUseCa
 import com.sachin.population.presentation.state.UiScreenState
 import com.sachin.population.utils.Result
 import io.mockk.coEvery
-import io.mockk.mockkClass
+import io.mockk.mockk
 import io.mockk.unmockkAll
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -16,33 +16,21 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.test.runTest
 import org.junit.After
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class DashboardViewModelTest {
 
-    private lateinit var viewModel: DashboardViewModel
-    private lateinit var getNationPopulationDataUseCase: GetNationPopulationDataUseCase
-
     @get:Rule
     val coroutineTestRule = CoroutineTestRule()
 
-    @Before
-    fun setUp() {
-        getNationPopulationDataUseCase = mockkClass(GetNationPopulationDataUseCase::class, relaxed = true)
-        viewModel = DashboardViewModel(coroutineTestRule.testDispatcher, getNationPopulationDataUseCase)
-    }
-
-    @After
-    fun tearDown() {
-        unmockkAll()
-    }
+    private val getNationPopulationDataUseCase = mockk<GetNationPopulationDataUseCase>(relaxed = true)
+    private val viewModel = DashboardViewModel(coroutineTestRule.testDispatcher, getNationPopulationDataUseCase)
 
     @Test
-    fun retry_fetchGetNationDataSuccess() = runTest {
-        val population = mockkClass(Population::class, relaxed = true)
+    fun `GIVEN usecase object not null WHEN fetch nation data from usecase THEN success with nation data` () = runTest {
+        val population = mockk<Population>()
         coEvery { getNationPopulationDataUseCase.execute() } returns flow {
             emit(Result.Success(population))
         }
@@ -53,13 +41,22 @@ internal class DashboardViewModelTest {
     }
 
     @Test
-    fun retry_fetchGetNationDataFailure() = runTest {
+    fun `GIVEN usecase object not null WHEN fetch nation data from usecase THEN Failure with message` () = runTest {
         coEvery { getNationPopulationDataUseCase.execute() } returns flow {
-            emit(Result.Failure("", Throwable()))
+            emit(Result.Failure(FAILURE_MESSAGE, Throwable()))
         }
         viewModel.retry()
         val job = async { viewModel.uiState.take(1).first() }
 
         Truth.assertThat(job.await()).isInstanceOf(UiScreenState.Error::class.java)
+    }
+
+    @After
+    fun tearDown() {
+        unmockkAll()
+    }
+
+    private companion object {
+        private const val FAILURE_MESSAGE = "something went wrong"
     }
 }

@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.test.runTest
 import org.junit.After
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import retrofit2.HttpException
@@ -22,22 +21,11 @@ import java.io.IOException
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class GetStatePopulationDetailsUseCaseTest {
 
-    private lateinit var populationRepository: PopulationRepository
-    private lateinit var statePopulationDetailsUseCase: GetStatePopulationDetailsUseCase
+    private val populationRepository = mockk<PopulationRepository>()
+    private val statePopulationDetailsUseCase = GetStatePopulationDetailsUseCase(populationRepository)
 
     @get:Rule
     val coroutineTestRule = CoroutineTestRule()
-
-    @Before
-    fun setUp() {
-        populationRepository = mockkClass(PopulationRepository::class, relaxed = true)
-        statePopulationDetailsUseCase = GetStatePopulationDetailsUseCase(populationRepository)
-    }
-
-    @After
-    fun tearDown() {
-        unmockkAll()
-    }
 
     @Test
     fun execute_fetchStatePopulationData_emitSuccess() = runTest(coroutineTestRule.testDispatcher) {
@@ -61,40 +49,83 @@ internal class GetStatePopulationDetailsUseCaseTest {
         val statePopulationDto = StatePopulationDto(data = list, source = emptyList())
         coEvery { populationRepository.getStatePopulationByYear(any()) } returns statePopulationDto
 
-        val result = statePopulationDetailsUseCase.execute("2019")
+        val result = statePopulationDetailsUseCase.execute(YEAR)
         val job = async { result.take(2).last() }
 
         Truth.assertThat(job.await()).isInstanceOf(Result.Success::class.java)
         coVerify {
-            populationRepository.getStatePopulationByYear("2019")
+            populationRepository.getStatePopulationByYear(YEAR)
         }
     }
 
     @Test
-    fun execute_fetchStatePopulationDataIOException_emitFailure() = runTest(coroutineTestRule.testDispatcher) {
-        val exception = mockkClass(IOException::class)
-        coEvery { populationRepository.getStatePopulationByYear(any()) } throws exception
+    fun execute_fetchStatePopulationDataWithEmptyList_emitSuccess() =
+        runTest(coroutineTestRule.testDispatcher) {
+            val statePopulationDto = StatePopulationDto(data = emptyList(), source = emptyList())
+            coEvery { populationRepository.getStatePopulationByYear(any()) } returns statePopulationDto
 
-        val result = statePopulationDetailsUseCase.execute("2019")
-        val job = async { result.take(2).last() }
+            val result = statePopulationDetailsUseCase.execute(YEAR)
+            val job = async { result.take(2).last() }
 
-        Truth.assertThat(job.await()).isInstanceOf(Result.Failure::class.java)
-        coVerify {
-            populationRepository.getStatePopulationByYear("2019")
+            Truth.assertThat(job.await()).isInstanceOf(Result.Success::class.java)
+            coVerify {
+                populationRepository.getStatePopulationByYear(YEAR)
+            }
         }
-    }
 
     @Test
-    fun execute_fetchStatePopulationDataConnectionException_emitFailure() = runTest(coroutineTestRule.testDispatcher) {
-        val exception = mockkClass(HttpException::class, relaxed = true)
-        coEvery { populationRepository.getStatePopulationByYear(any()) } throws exception
+    fun execute_fetchStatePopulationDataIOException_emitFailure() =
+        runTest(coroutineTestRule.testDispatcher) {
+            val exception = mockk<IOException>()
+            coEvery { populationRepository.getStatePopulationByYear(any()) } throws exception
 
-        val result = statePopulationDetailsUseCase.execute("2019")
-        val job = async { result.take(2).last() }
+            val result = statePopulationDetailsUseCase.execute(YEAR)
+            val job = async { result.take(2).last() }
 
-        Truth.assertThat(job.await()).isInstanceOf(Result.Failure::class.java)
-        coVerify {
-            populationRepository.getStatePopulationByYear("2019")
+            Truth.assertThat(job.await()).isInstanceOf(Result.Failure::class.java)
+            coVerify {
+                populationRepository.getStatePopulationByYear(YEAR)
+            }
         }
+
+    @Test
+    fun execute_fetchStatePopulationDataConnectionException_emitFailure() =
+        runTest(coroutineTestRule.testDispatcher) {
+            val httpException = mockk<HttpException>()
+            every { httpException.localizedMessage } returns FAILURE_MESSAGE
+            coEvery { populationRepository.getStatePopulationByYear(any()) } throws httpException
+
+            val result = statePopulationDetailsUseCase.execute(YEAR)
+            val job = async { result.take(2).last() }
+
+            Truth.assertThat(job.await()).isInstanceOf(Result.Failure::class.java)
+            coVerify {
+                populationRepository.getStatePopulationByYear(YEAR)
+            }
+        }
+
+    @Test
+    fun execute_fetchStatePopulationHttpExceptionWithNoLocalizedMsg_emitFailure() =
+        runTest(coroutineTestRule.testDispatcher) {
+            val httpException = mockk<HttpException>()
+            every { httpException.localizedMessage } returns null
+            coEvery { populationRepository.getStatePopulationByYear(any()) } throws httpException
+
+            val result = statePopulationDetailsUseCase.execute(YEAR)
+            val job = async { result.take(2).last() }
+
+            Truth.assertThat(job.await()).isInstanceOf(Result.Failure::class.java)
+            coVerify {
+                populationRepository.getStatePopulationByYear(YEAR)
+            }
+        }
+    @After
+    fun tearDown() {
+        unmockkAll()
+    }
+
+    private companion object {
+        private const val YEAR = "2019"
+        private const val FAILURE_MESSAGE = "http exception"
     }
 }
