@@ -2,14 +2,15 @@ package com.sachin.population.presentation.viewmodel.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sachin.population.utils.Result
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import com.sachin.population.di.DispatchersIO
 import com.sachin.population.domain.usecases.nation.GetNationPopulationDataUseCase
 import com.sachin.population.presentation.state.UiScreenState
+import com.sachin.population.utils.Result
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel

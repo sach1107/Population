@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.ui.graphics.toArgb
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -20,6 +21,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             PopulationTheme {
+                window?.statusBarColor = PopulationTheme.colorScheme.primary.toArgb()
                 // A surface container using the 'background' color from the theme
                 val navController = rememberNavController()
                 viewModel.startDestination?.let {
