@@ -28,38 +28,39 @@ internal class GetNationPopulationDataUseCaseTest {
     val coroutineTestRule = CoroutineTestRule()
 
     @Test
-    fun execute_fetchPopulationData_emitSuccess() = runTest(coroutineTestRule.testDispatcher) {
-        val nationDataDto1 = NationDataDto(
-            nationId = "1",
-            yearId = 2020,
-            year = "2020",
-            slugNation = "n1",
-            nation = "USA",
-            population = 123
-        )
-        val nationDataDto2 = NationDataDto(
-            nationId = "2",
-            yearId = 2019,
-            year = "2019",
-            slugNation = "n2",
-            nation = "USA",
-            population = 120
-        )
-        val list = listOf(nationDataDto1, nationDataDto2)
-        val nationPopulationDto = NationPopulationDto(nationData = list, source = emptyList())
-        coEvery { populationRepository.getNationPopulationData() } returns nationPopulationDto
+    fun execute_fetchNationPopulationData_returnSuccessWithData() =
+        runTest(coroutineTestRule.testDispatcher) {
+            val nationDataDto1 = NationDataDto(
+                nationId = "1",
+                yearId = 2020,
+                year = "2020",
+                slugNation = "n1",
+                nation = "USA",
+                population = 123
+            )
+            val nationDataDto2 = NationDataDto(
+                nationId = "2",
+                yearId = 2019,
+                year = "2019",
+                slugNation = "n2",
+                nation = "USA",
+                population = 120
+            )
+            val list = listOf(nationDataDto1, nationDataDto2)
+            val nationPopulationDto = NationPopulationDto(nationData = list, source = emptyList())
+            coEvery { populationRepository.getNationPopulationData() } returns nationPopulationDto
 
-        val result = populationDataUseCase.execute()
-        val job = async { result.take(2).last() }
+            val result = populationDataUseCase.execute()
+            val job = async { result.take(2).last() }
 
-        assertThat(job.await()).isInstanceOf(Result.Success::class.java)
-        coVerify {
-            populationRepository.getNationPopulationData()
+            assertThat(job.await()).isInstanceOf(Result.Success::class.java)
+            coVerify {
+                populationRepository.getNationPopulationData()
+            }
         }
-    }
 
     @Test
-    fun execute_fetchPopulationDataWithEmptyList_emitSuccess() =
+    fun execute_fetchNationPopulationDataWithNoData_returnSuccessWithEmptyList() =
         runTest(coroutineTestRule.testDispatcher) {
             val nationPopulationDto =
                 NationPopulationDto(nationData = emptyList(), source = emptyList())
@@ -75,7 +76,7 @@ internal class GetNationPopulationDataUseCaseTest {
         }
 
     @Test
-    fun execute_fetchPopulationDataIOException_emitFailure() =
+    fun execute_fetchNationPopulationDataWithIOException_returnFailureWithMsg() =
         runTest(coroutineTestRule.testDispatcher) {
             val exception = mockk<IOException>()
             coEvery { populationRepository.getNationPopulationData() } throws exception
@@ -90,7 +91,7 @@ internal class GetNationPopulationDataUseCaseTest {
         }
 
     @Test
-    fun execute_fetchPopulationHttpException_emitFailure() =
+    fun execute_fetchNationPopulationWithHttpException_returnFailureWithMsg() =
         runTest(coroutineTestRule.testDispatcher) {
             val exception = mockk<HttpException>()
             every { exception.localizedMessage } returns FAILURE_MESSAGE
@@ -106,7 +107,7 @@ internal class GetNationPopulationDataUseCaseTest {
         }
 
     @Test
-    fun execute_fetchPopulationHttpExceptionWithNoLocalizedMsg_emitFailure() =
+    fun execute_fetchNationPopulationWithHttpExceptionWithNoLocalizedMsg_returnFailureWithMsg() =
         runTest(coroutineTestRule.testDispatcher) {
             val exception = mockk<HttpException>()
             every { exception.localizedMessage } returns null

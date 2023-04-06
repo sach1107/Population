@@ -28,7 +28,7 @@ internal class GetStatePopulationDetailsUseCaseTest {
     val coroutineTestRule = CoroutineTestRule()
 
     @Test
-    fun execute_fetchStatePopulationData_emitSuccess() = runTest(coroutineTestRule.testDispatcher) {
+    fun execute_fetchStatePopulationData_returnSuccessWithData() = runTest(coroutineTestRule.testDispatcher) {
         val stateDataDto1 = StateDataDto(
             stateId = "1",
             yearId = 2020,
@@ -59,7 +59,7 @@ internal class GetStatePopulationDetailsUseCaseTest {
     }
 
     @Test
-    fun execute_fetchStatePopulationDataWithEmptyList_emitSuccess() =
+    fun execute_fetchStatePopulationDataWithNoData_returnSuccessWithEmptyList() =
         runTest(coroutineTestRule.testDispatcher) {
             val statePopulationDto = StatePopulationDto(data = emptyList(), source = emptyList())
             coEvery { populationRepository.getStatePopulationByYear(any()) } returns statePopulationDto
@@ -74,7 +74,7 @@ internal class GetStatePopulationDetailsUseCaseTest {
         }
 
     @Test
-    fun execute_fetchStatePopulationDataIOException_emitFailure() =
+    fun execute_fetchStatePopulationDataWithIOException_returnFailureWithMsg() =
         runTest(coroutineTestRule.testDispatcher) {
             val exception = mockk<IOException>()
             coEvery { populationRepository.getStatePopulationByYear(any()) } throws exception
@@ -89,7 +89,7 @@ internal class GetStatePopulationDetailsUseCaseTest {
         }
 
     @Test
-    fun execute_fetchStatePopulationDataConnectionException_emitFailure() =
+    fun execute_fetchStatePopulationWithHttpException_returnFailureWithMsg() =
         runTest(coroutineTestRule.testDispatcher) {
             val httpException = mockk<HttpException>()
             every { httpException.localizedMessage } returns FAILURE_MESSAGE
@@ -105,7 +105,7 @@ internal class GetStatePopulationDetailsUseCaseTest {
         }
 
     @Test
-    fun execute_fetchStatePopulationHttpExceptionWithNoLocalizedMsg_emitFailure() =
+    fun execute_fetchStatePopulationWithHttpExceptionWithNoLocalizedMsg_returnFailureWithMsg() =
         runTest(coroutineTestRule.testDispatcher) {
             val httpException = mockk<HttpException>()
             every { httpException.localizedMessage } returns null
